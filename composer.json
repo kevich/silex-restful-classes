@@ -1,0 +1,25 @@
+{
+    "name":"apg/silex-restful-classes",
+    "type":"library",
+    "description":"A simple dummy classes for rest api",
+    "keywords":[
+        "framework", "silex", "restful", "api"
+    ],
+    "license":"MIT",
+    "authors":[
+        {
+            "name":"Andrew Kevich",
+            "email":"andrew.kevich@gmail.com"
+        }
+    ],
+    "require":{
+        "php":">=5.3.3",
+        "silex/silex":"1.0.*",
+        "doctrine/orm": "2.4.x-dev"
+    },
+    "minimum-stability":"dev",
+    "autoload": {
+        "psr-0": { "APG\\RESTful": "src" }
+    }
+}
+
