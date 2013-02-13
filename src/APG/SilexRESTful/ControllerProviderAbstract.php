@@ -88,7 +88,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                 return new Response('Missing parameters.', 400);
             }
 
-            if (get_class($service) == 'ServiceDefault') {
+            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
                 /** @var ServiceDefault $service */
                 $service->setTableName($object_name);
             }
@@ -115,7 +115,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function getAll($service, $object_name)
     {
         return function (Application $app, Request $request) use($service, $object_name) {
-            if (get_class($service) == 'ServiceDefault') {
+            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
                 /** @var ServiceDefault $service */
                 $service->setTableName($object_name);
             }
@@ -134,7 +134,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function getById($service, $object_name)
     {
         return function (Application $app, Request $request, $id) use($service, $object_name) {
-            if (get_class($service) == 'ServiceDefault') {
+            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
                 /** @var ServiceDefault $service */
                 $service->setTableName($object_name);
             }
@@ -149,7 +149,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function deleteById($service, $object_name)
     {
         return function (Application $app, Request $request, $id) use ($service, $object_name) {
-            if (get_class($service) == 'ServiceDefault') {
+            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
                 /** @var ServiceDefault $service */
                 $service->setTableName($object_name);
             }

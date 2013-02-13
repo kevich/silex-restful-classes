@@ -18,7 +18,7 @@ class ModelDummy implements Model
     {
         $obj_vars = get_object_vars($this);
         foreach ($array as $key=>$value) {
-            if (get_class($this) == 'ModelDummy') {
+            if (get_class($this) == 'APG\SilexRESTful\ModelDummy') {
                 $this->$key = $value;
             } else {
                 if (array_key_exists($key, $obj_vars)) {
