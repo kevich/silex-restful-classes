@@ -138,7 +138,11 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                 /** @var ServiceDefault $service */
                 $service->setTableName($object_name);
             }
-            return $app->json($service->getByIdAssoc($id));
+            return $app->json(array(
+                'success' => true,
+                'data' => $service->getByIdAssoc($id)
+                )
+            );
         };
     }
 
