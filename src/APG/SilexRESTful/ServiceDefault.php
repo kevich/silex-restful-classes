@@ -17,6 +17,11 @@ class ServiceDefault implements Service
     protected $table_name;
 
     /**
+     * @var array
+     */
+    protected $filters;
+
+    /**
      * @param \Doctrine\DBAL\Connection $db
      */
     public function __construct($db)
@@ -40,6 +45,11 @@ class ServiceDefault implements Service
     public function getTableName()
     {
         return $this->table_name;
+    }
+
+    public function setFilters($filters)
+    {
+        $this->filters = $filters;
     }
 
     /**
@@ -71,7 +81,7 @@ class ServiceDefault implements Service
     {
         return $this->table_name ?
             $this->db->fetchAll(
-                'SELECT ' . $this->get_fields() . ' FROM ' . $this->table_name
+                'SELECT ' . $this->get_fields() . ' FROM ' . $this->table_name . $this->createWhere()
                     . (($start != null && $limit != null) ? (' LIMIT ' . $start . ',' . $limit) : '')
             )
             : array();
@@ -80,7 +90,7 @@ class ServiceDefault implements Service
     public function getTotalCount()
     {
         return $this->table_name ?
-            $this->db->fetchColumn('SELECT COUNT(1) FROM ' . $this->table_name)
+            $this->db->fetchColumn('SELECT COUNT(1) FROM ' . $this->table_name . $this->createWhere())
             : 0;
     }
 
@@ -127,5 +137,28 @@ class ServiceDefault implements Service
     {
         $class_name = ucfirst($this->table_name) . '\Model';
         return class_exists($class_name) ? implode(',', array_keys(get_class_vars($class_name))) : '*';
+    }
+
+    protected function createWhere()
+    {
+        $where = ' WHERE 1';
+        if (count($this->filters) > 0) {
+            foreach ($this->filters as $filter) {
+                $field = false;
+                if (property_exists($filter, 'field')) $field = $filter->field;
+                if (property_exists($filter, 'property')) $field = $filter->property;
+                if (!property_exists($filter, 'type')) $filter->type = 'string';
+                if ($field) {
+                    switch ($filter->type) {
+                        case 'string':
+                            $where .= " AND {$field} LIKE ('%{$filter->value}%')";
+                            break;
+                        case 'foreingKey':
+                            $where .= " AND {$field} = " . $filter->value;
+                    }
+                }
+            }
+        }
+        return $where;
     }
 }

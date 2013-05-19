@@ -38,4 +38,10 @@ interface Service
      */
     public function deleteById($id);
 
+    /**
+     * @param array $filters
+     * @return null
+     */
+    public function setFilters($filters);
+
 }
