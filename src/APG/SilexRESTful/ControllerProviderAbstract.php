@@ -5,6 +5,7 @@ use Silex\Application;
 use Silex\ControllerProviderInterface;
 use Silex\ControllerCollection;
 use APG\SilexRESTful\Interfaces\Service;
+use APG\SilexRESTful\Helpers;
 use \Symfony\Component\HttpFoundation\Request;
 use \Symfony\Component\HttpFoundation\Response;
 
@@ -29,7 +30,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
         $default_service = $app['object.service'];
         $default_service->setTableName($this->object_name);
 
-        $this->service = (class_exists(ucfirst($this->object_name) . '\Service')) ?
+        $this->service = (class_exists(Helpers::to_camel_case($this->object_name) . '\Service')) ?
             $app['object.' . $this->object_name] : $app['object.service'];
 
         $this->registerAdditionalControllers($controllers);
@@ -62,7 +63,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                 return new Response('Missing parameters.', 400);
             }
 
-            $class_name = ucfirst($object_name) . '\Model';
+            $class_name = Helpers::to_camel_case($object_name) . '\Model';
             $object = class_exists($class_name) ? new $class_name() : new ModelDummy($object_name);
             $object->fillFromArray($data);
             $status = $service->saveObject($object);

@@ -16,7 +16,7 @@ class Helpers {
         $func = create_function('$c', 'return "_" . strtolower($c[1]);');
         return preg_replace_callback('/([A-Z])/', $func, $str);
     }
-    
+
     /**
      * Translates a string with underscores into camel case (e.g. first_name -&gt; firstName)
      * @param    string   $str                     String in underscore format

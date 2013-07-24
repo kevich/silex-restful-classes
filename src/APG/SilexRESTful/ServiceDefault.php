@@ -114,7 +114,7 @@ class ServiceDefault implements Service
         if (!$array) {
             return false;
         }
-        $class_name = ucfirst($this->table_name) . '\Model';
+        $class_name = Helpers::to_camel_case($this->table_name) . '\Model';
         $object = class_exists($class_name) ? new $class_name() : new ModelDummy($this->table_name);
         $object->fillFromArray($array);
         return $object;
@@ -135,7 +135,7 @@ class ServiceDefault implements Service
      */
     protected function get_fields()
     {
-        $class_name = ucfirst($this->table_name) . '\Model';
+        $class_name = Helpers::to_camel_case($this->table_name) . '\Model';
         return class_exists($class_name) ? implode(',', array_keys(get_class_vars($class_name))) : '*';
     }
 
