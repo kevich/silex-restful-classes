@@ -141,7 +141,7 @@ class ServiceDefault implements Service
 
     protected function createWhere()
     {
-        $where = ' WHERE 1';
+        $where = ' WHERE TRUE';
         if (count($this->filters) > 0) {
             foreach ($this->filters as $filter) {
                 $field = false;
