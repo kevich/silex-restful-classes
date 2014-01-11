@@ -82,7 +82,7 @@ class ServiceDefault implements Service
         return $this->table_name ?
             $this->db->fetchAll(
                 'SELECT ' . $this->get_fields() . ' FROM ' . $this->table_name . $this->createWhere()
-                    . (($start != null && $limit != null) ? (' LIMIT ' . $start . ',' . $limit) : '')
+                    . (($start != null && $limit != null) ? (' LIMIT ' . $start . ' OFFSET ' . $limit) : '')
             )
             : array();
     }
