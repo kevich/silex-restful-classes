@@ -79,18 +79,28 @@ class ServiceDefault implements Service
      */
     public function getAllAssoc($start = null, $limit = null)
     {
-        return $this->table_name ?
-            $this->db->fetchAll(
-                'SELECT ' . $this->get_fields() . ' FROM ' . $this->table_name . $this->createWhere()
-                    . (($start != null && $limit != null) ? (' LIMIT ' . $limit . ' OFFSET ' . $start) : '')
-            )
-            : array();
+        $qb = $this->db->createQueryBuilder()
+            ->select($this->get_fields())
+            ->from($this->table_name, '')
+            ->where($this->createWhere());
+        if ($limit != null) {
+            $qb->setMaxResults($limit);
+        }
+        if ($start != null) {
+            $qb->setFirstResult($start);
+        }
+        return $this->table_name ? $this->db->fetchAll($qb->getSQL()) : array();
     }
 
     public function getTotalCount()
     {
         return $this->table_name ?
-            $this->db->fetchColumn('SELECT COUNT(1) FROM ' . $this->table_name . $this->createWhere())
+            $this->db->fetchColumn(
+                $this->db->createQueryBuilder()
+                    ->select('COUNT(1)')
+                    ->from($this->table_name, '')
+                    ->where($this->createWhere())->getSQL()
+            )
             : 0;
     }
 
@@ -141,15 +151,18 @@ class ServiceDefault implements Service
 
     protected function createWhere()
     {
-        $where = ' WHERE TRUE';
+        $where = 'TRUE';
         if (count($this->filters) > 0) {
             foreach ($this->filters as $filter) {
                 $field = false;
                 if (property_exists($filter, 'field')) $field = $filter->field;
                 if (property_exists($filter, 'property')) $field = $filter->property;
-                if (!property_exists($filter, 'type')) $filter->type = 'string';
+                if (!property_exists($filter, 'type')) $filter->type = gettype($filter->value);
                 if ($field) {
                     switch ($filter->type) {
+                        case 'integer':
+                            $where .= " AND {$field} = {$filter->value}";
+                            break;
                         case 'string':
                             $where .= " AND {$field} LIKE ('%{$filter->value}%')";
                             break;
