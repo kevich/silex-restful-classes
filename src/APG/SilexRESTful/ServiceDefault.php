@@ -59,7 +59,7 @@ class ServiceDefault implements Service
     public function saveObject($object)
     {
         $status = $this->db->insert($object->getObjectName(), get_object_vars($object));
-        $object->setId($this->db->lastInsertId());
+        $object->setId($this->db->lastInsertId($object->getObjectName()."_id_seq"));
         return $status;
     }
 
