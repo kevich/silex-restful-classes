@@ -70,7 +70,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             return $status ? $app->json(array(
                     'success' => true,
                     'msg' => 'created',
-                    'data' => array_merge(array('id' => $object->getId()),(array)$object)
+                    'data' => array_merge(array('id' => $object->getId()),get_object_vars($object))
                 )) : new Response('Server error.', 500);
         };
     }
