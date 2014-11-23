@@ -164,7 +164,7 @@ class ServiceDefault implements Service
                             $where .= " AND {$field} = {$filter->value}";
                             break;
                         case 'string':
-                            $where .= " AND {$field} LIKE ('%{$filter->value}%')";
+                            $where .= " AND lower({$field}) LIKE (lower('%{$filter->value}%'))";
                             break;
                         case 'foreingKey':
                             $where .= " AND {$field} = " . $filter->value;
