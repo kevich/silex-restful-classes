@@ -146,7 +146,7 @@ class ServiceDefault implements Service
     protected function get_fields()
     {
         $class_name = Helpers::to_camel_case($this->table_name) . '\Model';
-        return class_exists($class_name) ? implode(',', array_keys(get_class_vars($class_name))) : '*';
+        return class_exists($class_name) ? implode(',', array_merge(array('id'), array_keys(get_class_vars($class_name)))) : '*';
     }
 
     protected function createWhere()
