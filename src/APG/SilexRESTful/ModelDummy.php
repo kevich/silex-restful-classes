@@ -31,12 +31,12 @@ class ModelDummy implements Model
 
     public function getId()
     {
-        return $this->id;
+        return (int)$this->id;
     }
 
     public function setId($id)
     {
-        $this->id = $id;
+        $this->id = (int)$id;
     }
 
     public function getObjectName()
