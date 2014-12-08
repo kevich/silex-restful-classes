@@ -20,9 +20,4 @@ interface Model
      */
     public function setId($id);
 
-    /**
-     * @return string
-     */
-    public function getObjectName();
-
 }

@@ -11,8 +11,21 @@ use \Symfony\Component\HttpFoundation\Response;
 
 abstract class ControllerProviderAbstract implements ControllerProviderInterface
 {
+    /**
+     * @var string
+     */
     protected $object_name;
+
+    /**
+     * @var Service
+     */
     protected $service;
+
+    /**
+     * @var array
+     */
+    protected $securityLimitationsConfig;
+
     /**
      * Returns routes to connect to the given application.
      *
@@ -35,38 +48,64 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
 
         $this->registerAdditionalControllers($controllers);
 
-        $controllers->get('/', $this->getAll($this->service, $this->object_name));
+        $controllers->get('/', $this->getAll($this));
 
-        $controllers->get('/{id}', $this->getById($this->service, $this->object_name));
+        $controllers->get('/{id}', $this->getById($this));
 
-        $controllers->post('/', $this->post($app, $this->service, $this->object_name));
+        $controllers->post('/', $this->post($this));
 
-        $controllers->put('/{id}', $this->put($app, $this->service, $this->object_name));
+        $controllers->put('/{id}', $this->put($this));
 
-        $controllers->delete('/{id}', $this->deleteById($this->service, $this->object_name));
+        $controllers->delete('/{id}', $this->deleteById($this));
 
 
         return $controllers;
     }
 
     /**
-     * @param Application $app
-     * @param Service $service
+     * @param array $config
+     */
+    final public function registerSecurityLimitationsConfig($config)
+    {
+        $this->securityLimitationsConfig = $config;
+    }
+
+    /**
+     * @return Service
+     */
+    public function getService()
+    {
+        return $this->service;
+    }
+
+    /**
+     * @return string
+     */
+    public function getObjectName()
+    {
+        return $this->object_name;
+    }
+
+    /**
+     * @param self $controllerProvider
      * @return callable
      */
-    protected function post($app, $service, $object_name)
+    protected function post($controllerProvider)
     {
-        return function (Request $request) use ($app, $service, $object_name) {
-
+        return function (Application $app, Request $request) use ($controllerProvider) {
+            $objectName = $controllerProvider->getObjectName();
             $content = json_decode($request->getContent());
-            if (!$data = $content->$object_name) {
+            if (!$data = $content->$objectName) {
                 return new Response('Missing parameters.', 400);
             }
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($objectName);
+            }
 
-            $class_name = Helpers::to_camel_case($object_name) . '\Model';
-            $object = class_exists($class_name) ? new $class_name() : new ModelDummy($object_name);
+            $class_name = Helpers::to_camel_case($objectName) . '\Model';
+            $object = class_exists($class_name) ? new $class_name() : new ModelDummy($objectName);
             $object->fillFromArray($data);
-            $status = $service->saveObject($object);
+            $status = $controllerProvider->getService()->saveObject($object);
             return $status ? $app->json(array(
                     'success' => true,
                     'msg' => 'created',
@@ -76,30 +115,28 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     }
 
     /**
-     * @param Application $app
-     * @param Service $service
+     * @param self $controllerProvider
      * @return callable
      */
-    protected function put($app, $service, $object_name)
+    protected function put($controllerProvider)
     {
-        return function (Application $app, Request $request, $id) use ($app, $service, $object_name) {
-
+        return function (Application $app, Request $request, $id) use ($controllerProvider) {
+            $objectName = $controllerProvider->getObjectName();
             $content = json_decode($request->getContent());
-            if (!$data = $content->$object_name) {
+            if (!$data = $content->$objectName) {
                 return new Response('Missing parameters.', 400);
             }
 
-            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
-                /** @var ServiceDefault $service */
-                $service->setTableName($object_name);
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($objectName);
             }
 
-            if (!$object = $service->getById($id)) {
+            if (!$object = $controllerProvider->getService()->getById($id)) {
                 return new Response('Missing parameters.', 400);
             }
 
             $object->fillFromArray((array)$data);
-            $status = $service->updateObject($object);
+            $status = $controllerProvider->getService()->updateObject($object);
 
             return $status ? $app->json(array(
                     'success' => true,
@@ -110,56 +147,54 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     }
 
     /**
-     * @param Service $service
+     * @param self $controllerProvider
      * @return callable
      */
-    protected function getAll($service, $object_name)
+    protected function getAll($controllerProvider)
     {
-        return function (Application $app, Request $request) use($service, $object_name) {
-            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
-                /** @var ServiceDefault $service */
-                $service->setTableName($object_name);
+        return function (Application $app, Request $request) use($controllerProvider) {
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
             $start = $request->get('start');
             $limit = $request->get('limit');
-            $service->setFilters(json_decode($request->get('filter')));
-            $total = $service->getTotalCount();
+            $controllerProvider->getService()->setFilters(json_decode($request->get('filter')));
+            $total = $controllerProvider->getService()->getTotalCount();
             return $app->json(array(
                     'total' => $total,
-                    'data' => $service->getAllAssoc($start,$limit)));
+                    'data' => $controllerProvider->getService()->getAllAssoc($start,$limit)));
         };
     }
+
     /**
-     * @param Service $service
+     * @param self $controllerProvider
      * @return callable
      */
-    protected function getById($service, $object_name)
+    protected function getById($controllerProvider)
     {
-        return function (Application $app, Request $request, $id) use($service, $object_name) {
-            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
-                /** @var ServiceDefault $service */
-                $service->setTableName($object_name);
+        return function (Application $app, Request $request, $id) use($controllerProvider) {
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
             return $app->json(array(
                 'success' => true,
-                'data' => $service->getByIdAssoc($id)
+                'data' => $controllerProvider->getService()->getByIdAssoc($id)
                 )
             );
         };
     }
 
     /**
-     * @param Service $service
+     * @param self $controllerProvider
      * @return callable
      */
-    protected function deleteById($service, $object_name)
+    protected function deleteById($controllerProvider)
     {
-        return function (Application $app, Request $request, $id) use ($service, $object_name) {
-            if (get_class($service) == 'APG\SilexRESTful\ServiceDefault') {
-                /** @var ServiceDefault $service */
-                $service->setTableName($object_name);
+        return function (Application $app, Request $request, $id) use ($controllerProvider) {
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
-            return $service->deleteById($id) ? $app->json(array(
+            return $controllerProvider->getService()->deleteById($id) ? $app->json(array(
                     'success' => true,
                     'msg' => 'deleted',
                     'data' => array()
@@ -171,4 +206,9 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
      * @param ControllerCollection $controllers
      */
     abstract protected function registerAdditionalControllers($controllers);
+
+    /**
+     * @param string $object_name
+     */
+    abstract protected function __construct($object_name);
 }

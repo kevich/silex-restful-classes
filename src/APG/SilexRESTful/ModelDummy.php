@@ -6,14 +6,15 @@ use APG\SilexRESTful\Interfaces\Model;
 
 class ModelDummy implements Model
 {
-    private $object_name;
+    /**
+     * @var int
+     */
     private $id;
 
-    public function __construct($object_name)
-    {
-        $this->object_name = $object_name;
-    }
-
+    /**
+     * @param $array
+     * @return $this
+     */
     public function fillFromArray($array)
     {
         $obj_vars = get_object_vars($this);
@@ -25,23 +26,26 @@ class ModelDummy implements Model
                     $this->$key = $value;
                 }
             }
-
         }
+        return $this;
     }
 
+    /**
+     * @return int
+     */
     public function getId()
     {
         return (int)$this->id;
     }
 
+    /**
+     * @param int $id
+     * @return $this|Model
+     */
     public function setId($id)
     {
         $this->id = (int)$id;
+        return $this;
     }
 
-    public function getObjectName()
-    {
-        return $this->object_name;
-    }
-    
 }

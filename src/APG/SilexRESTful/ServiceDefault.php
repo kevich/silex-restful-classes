@@ -58,8 +58,8 @@ class ServiceDefault implements Service
      */
     public function saveObject($object)
     {
-        $status = $this->db->insert($object->getObjectName(), get_object_vars($object));
-        $object->setId($this->db->lastInsertId($object->getObjectName()."_id_seq"));
+        $status = $this->db->insert($this->table_name, get_object_vars($object));
+        $object->setId($this->db->lastInsertId($this->table_name."_id_seq"));
         return $status;
     }
 
@@ -69,7 +69,7 @@ class ServiceDefault implements Service
      */
     public function updateObject($object)
     {
-        return $this->db->update($object->getObjectName(), get_object_vars($object), array('id' => $object->getId()));
+        return $this->db->update($this->table_name, get_object_vars($object), array('id' => $object->getId()));
     }
 
     /**
