@@ -207,8 +207,4 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
      */
     abstract protected function registerAdditionalControllers($controllers);
 
-    /**
-     * @param string $object_name
-     */
-    abstract protected function __construct($object_name);
 }
