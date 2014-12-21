@@ -55,6 +55,18 @@ class SecurityFilter {
         return false;
     }
 
+    public function getAvailableRoles()
+    {
+        $roles = array();
+        foreach ($this->configuration as $role => $roleProp) {
+            $roles[] = array_merge(
+                array('id' => $role),
+                array_intersect_key($roleProp, array('name' => 'bulk'))
+            );
+        }
+        return $roles;
+    }
+
     /**
      * @return \Symfony\Component\Security\Core\Role\RoleInterface[]
      */
