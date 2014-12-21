@@ -109,7 +109,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
 
             $class_name = Helpers::to_camel_case($objectName) . '\Model';
             $object = class_exists($class_name) ? new $class_name() : new ModelDummy($objectName);
-            $object->fillFromArray($data);
+            $object->fillFromArray((array)$data);
             $status = $controllerProvider->getService()->saveObject($object);
             return $status ? $app->json(array(
                     'success' => true,
