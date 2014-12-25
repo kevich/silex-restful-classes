@@ -157,8 +157,8 @@ class ServiceDefault implements Service
                 $field = false;
                 if (property_exists($filter, 'field')) $field = $filter->field;
                 if (property_exists($filter, 'property')) $field = $filter->property;
-                if (!property_exists($filter, 'type')) $filter->type = gettype($filter->value);
-                if ($field) {
+                if (!property_exists($filter, 'type') && property_exists($filter, 'value')) $filter->type = gettype($filter->value);
+                if ($field && property_exists($filter, 'value')) {
                     switch ($filter->type) {
                         case 'integer':
                             $where .= " AND {$field} = {$filter->value}";
