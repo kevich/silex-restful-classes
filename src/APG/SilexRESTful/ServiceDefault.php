@@ -3,6 +3,7 @@ namespace APG\SilexRESTful;
 
 use APG\SilexRESTful\Interfaces\Service;
 use APG\SilexRESTful\Interfaces\Model;
+use Doctrine\DBAL\Types\Type;
 
 class ServiceDefault implements Service
 {
@@ -58,7 +59,8 @@ class ServiceDefault implements Service
      */
     public function saveObject($object)
     {
-        $status = $this->db->insert($this->table_name, get_object_vars($object));
+        $data = get_object_vars($object);
+        $status = $this->db->insert($this->table_name, $data, $this->prepareTypes($data));
         $object->setId($this->db->lastInsertId($this->table_name."_id_seq"));
         return $status;
     }
@@ -69,7 +71,8 @@ class ServiceDefault implements Service
      */
     public function updateObject($object)
     {
-        return $this->db->update($this->table_name, get_object_vars($object), array('id' => $object->getId()));
+        $data = get_object_vars($object);
+        return $this->db->update($this->table_name, $data, array('id' => $object->getId()), $this->prepareTypes($data));
     }
 
     /**
@@ -147,6 +150,14 @@ class ServiceDefault implements Service
     {
         $class_name = Helpers::to_camel_case($this->table_name) . '\Model';
         return class_exists($class_name) ? implode(',', array_merge(array('id'), array_keys(get_class_vars($class_name)))) : '*';
+    }
+
+    protected function prepareTypes($values) {
+        $types = array();
+        foreach ($values as $key=>$value) {
+            $types[$key] = Type::getType(gettype($value));
+        }
+        return $types;
     }
 
     protected function createWhere()
