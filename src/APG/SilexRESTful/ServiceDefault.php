@@ -155,7 +155,9 @@ class ServiceDefault implements Service
     protected function prepareTypes($values) {
         $types = array();
         foreach ($values as $key=>$value) {
-            $types[$key] = Type::getType(gettype($value));
+            if (!is_null($value)) {
+                $types[$key] = Type::getType(gettype($value));
+            }
         }
         return $types;
     }
