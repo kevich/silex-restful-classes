@@ -179,6 +179,15 @@ class ServiceDefault implements Service
                         case 'string':
                             $where .= " AND lower({$field}) LIKE (lower('%{$filter->value}%'))";
                             break;
+                        case 'pg_array':
+                            $where .= " AND (" . implode(' OR ', array_map(function($value) use ($field) {
+                                    $value = gettype($value) == 'string' ? "'$value'" : $value;
+                                    return "$value = ANY($field)";
+                                }, is_array($filter->value) ? $filter->value : array($filter->value))) . ")";
+                            break;
+                        case 'array':
+                            $where .= " AND $field = ANY(['" . implode("','", $filter->value) . "'])";
+                            break;
                         case 'foreingKey':
                             $where .= " AND {$field} = " . $filter->value;
                     }
