@@ -44,4 +44,9 @@ interface Service
      */
     public function setFilters($filters);
 
+    /**
+     * @param array $sorters
+     */
+    public function setSorters($sorters);
+
 }

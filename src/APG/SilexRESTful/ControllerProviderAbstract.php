@@ -173,6 +173,9 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             }
             $start = $request->get('start');
             $limit = $request->get('limit');
+            if ($request->get('sort')) {
+                $controllerProvider->getService()->setSorters(json_decode($request->get('sort')));
+            }
             $controllerProvider->getService()->setFilters(json_decode($request->get('filter')));
             $total = $controllerProvider->getService()->getTotalCount();
             return $app->json(array(

@@ -23,11 +23,19 @@ class ServiceDefault implements Service
     protected $filters;
 
     /**
+     * @var array
+     */
+    protected $sorters;
+
+    /**
      * @param \Doctrine\DBAL\Connection $db
      */
     public function __construct($db)
     {
         $this->db = $db;
+        $this->sorters = array(
+            (object)array('property' => 'id', 'direction' => 'ASC')
+        );
     }
 
     /**
@@ -48,9 +56,21 @@ class ServiceDefault implements Service
         return $this->table_name;
     }
 
+    /**
+     * @param array $filters
+     * @return null|void
+     */
     public function setFilters($filters)
     {
         $this->filters = $filters;
+    }
+
+    /**
+     * @param array $sorters
+     */
+    public function setSorters($sorters)
+    {
+        $this->sorters = $sorters;
     }
 
     /**
@@ -82,10 +102,12 @@ class ServiceDefault implements Service
      */
     public function getAllAssoc($start = null, $limit = null)
     {
-        $qb = $this->db->createQueryBuilder()
-            ->select($this->get_fields())
-            ->from($this->table_name, '')
-            ->where($this->createWhere());
+        $qb = $this->applySorters(
+            $this->db->createQueryBuilder()
+                ->select($this->get_fields())
+                ->from($this->table_name, '')
+                ->where($this->createWhere())
+        );
         if ($limit != null) {
             $qb->setMaxResults($limit);
         }
@@ -195,5 +217,17 @@ class ServiceDefault implements Service
             }
         }
         return $where;
+    }
+
+    /**
+     * @param \Doctrine\DBAL\Query\QueryBuilder $select
+     * @return \Doctrine\DBAL\Query\QueryBuilder
+     */
+    protected function applySorters($select)
+    {
+        foreach ($this->sorters as $sort) {
+            $select->addOrderBy($sort->property, $sort->direction);
+        }
+        return $select;
     }
 }
