@@ -55,6 +55,31 @@ class SecurityFilter {
         return false;
     }
 
+    public function extendFilters($itemName, $filters)
+    {
+        foreach ($this->getUserRoles() as $role) {
+            if (isset($this->configuration[$role->getRole()])) {
+                if (
+                isset($this->configuration[$role->getRole()]['filters'])
+                && is_array($this->configuration[$role->getRole()]['filters'])
+                ) {
+                    foreach ($this->configuration[$role->getRole()]['filters'] as $filterConfig) {
+                        if (
+                            array_key_exists('tables', $filterConfig)
+                            && array_key_exists('filter', $filterConfig)
+                            && is_array($filterConfig['tables'])
+                            && in_array($itemName, $filterConfig['tables'])
+                        ) {
+                            $filterConfig['filter']['value'] = $this->prepareFilterValue($filterConfig['filter']['value']);
+                            $filters[] = (object)$filterConfig['filter'];
+                        }
+                    }
+                }
+            }
+        }
+        return $filters;
+    }
+
     public function getAvailableRoles()
     {
         $roles = array();
@@ -76,6 +101,19 @@ class SecurityFilter {
         if (!is_null($token)) {
             return $token->getRoles();
         }
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    private function prepareFilterValue($value)
+    {
+        if (gettype($value) == 'string' && strstr($value, '@user->') !== false) {
+            $userParam = str_replace('@user->', '', $value);
+            $value = $this->getUser()->$userParam;
+        }
+        return $value;
     }
 
     /**

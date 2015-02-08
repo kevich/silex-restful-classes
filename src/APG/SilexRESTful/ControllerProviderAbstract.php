@@ -163,10 +163,12 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function getAll($controllerProvider)
     {
         return function (Application $app, Request $request) use($controllerProvider) {
+            $filters = json_decode($request->get('filter')) ? : array();
             if (isset($app['securityFilter'])) {
                 if (!$app['securityFilter']->isMethodAllowedForItemName('getAll', $controllerProvider->getObjectName())) {
                     return new Response('Method not allowed', 405);
                 }
+                $filters = $app['securityFilter']->extendFilters($controllerProvider->getObjectName(), $filters);
             }
             if ($controllerProvider->getService() instanceof ServiceDefault) {
                 $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
@@ -176,7 +178,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             if ($request->get('sort')) {
                 $controllerProvider->getService()->setSorters(json_decode($request->get('sort')));
             }
-            $controllerProvider->getService()->setFilters(json_decode($request->get('filter')));
+            $controllerProvider->getService()->setFilters($filters);
             $total = $controllerProvider->getService()->getTotalCount();
             return $app->json(array(
                     'total' => $total,
