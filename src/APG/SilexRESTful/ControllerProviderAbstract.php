@@ -164,6 +164,15 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     {
         return function (Application $app, Request $request) use($controllerProvider) {
             $filters = json_decode($request->get('filter')) ? : array();
+            if ($query = $request->get('query')) {
+                foreach ($query as $name=>$value) {
+                    $filter = new \StdClass;
+                    $filter->field = $name;
+                    $filter->value = $value;
+                    $filters[] = $filter;
+                }
+
+            }
             if (isset($app['securityFilter'])) {
                 if (!$app['securityFilter']->isMethodAllowedForItemName('getAll', $controllerProvider->getObjectName())) {
                     return new Response('Method not allowed', 405);

@@ -199,7 +199,7 @@ class ServiceDefault implements Service
                             $where .= " AND {$field} = {$filter->value}";
                             break;
                         case 'string':
-                            $where .= " AND lower({$field}) LIKE (lower('%{$filter->value}%'))";
+                            $where .= " AND {$field} ~* '" . preg_quote($filter->value) . "'";
                             break;
                         case 'pg_array':
                             $where .= " AND (" . implode(' OR ', array_map(function($value) use ($field) {
