@@ -8,6 +8,8 @@ use APG\SilexRESTful\Interfaces\Service;
 use APG\SilexRESTful\Helpers;
 use \Symfony\Component\HttpFoundation\Request;
 use \Symfony\Component\HttpFoundation\Response;
+use Worker\Model as WorkerModel;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 abstract class ControllerProviderAbstract implements ControllerProviderInterface
 {
@@ -57,7 +59,6 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
         $controllers->put('/{id}', $this->put($this));
 
         $controllers->delete('/{id}', $this->deleteById($this));
-
 
         return $controllers;
     }
@@ -188,6 +189,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                 $controllerProvider->getService()->setSorters(json_decode($request->get('sort')));
             }
             $controllerProvider->getService()->setFilters($filters);
+            $controllerProvider->getService()->setUser($controllerProvider->getUser($app));
             $total = $controllerProvider->getService()->getTotalCount();
             return $app->json(array(
                     'total' => $total,
@@ -211,6 +213,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             if ($controllerProvider->getService() instanceof ServiceDefault) {
                 $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
+            $controllerProvider->getService()->setUser($controllerProvider->getUser($app));
             return $app->json(array(
                 'success' => true,
                 'data' => $controllerProvider->getService()->getByIdAssoc($id)
@@ -241,6 +244,20 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                     'data' => array()
                 )) : new Response('Not found', 404);
         };
+    }
+
+    /**
+     * @param Application $app
+     * @return null|WorkerModel
+     */
+    protected function getUser($app)
+    {
+        /** @var TokenInterface $token */
+        $token = $app['security']->getToken();
+        if (null !== $token) {
+            return $token->getUser();
+        }
+        return null;
     }
 
     /**

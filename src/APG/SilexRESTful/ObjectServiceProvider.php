@@ -44,4 +44,5 @@ class ObjectServiceProvider implements ServiceProviderInterface
     {
         $this->classes = $classes;
     }
+
 }

@@ -4,6 +4,7 @@ namespace APG\SilexRESTful;
 use APG\SilexRESTful\Interfaces\Service;
 use APG\SilexRESTful\Interfaces\Model;
 use Doctrine\DBAL\Types\Type;
+use Worker\Model as WorkerModel;
 
 class ServiceDefault implements Service
 {
@@ -26,6 +27,11 @@ class ServiceDefault implements Service
      * @var array
      */
     protected $sorters;
+
+    /**
+     * @var WorkerModel
+     */
+    protected $user;
 
     /**
      * @param \Doctrine\DBAL\Connection $db
@@ -63,6 +69,15 @@ class ServiceDefault implements Service
     public function setFilters($filters)
     {
         $this->filters = $filters;
+    }
+
+    /**
+     * @param WorkerModel $user
+     * @return null|void
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
     }
 
     /**
@@ -197,6 +212,15 @@ class ServiceDefault implements Service
                     switch ($filter->type) {
                         case 'integer':
                             $where .= " AND {$field} = {$filter->value}";
+                            break;
+                        case 'list':
+                            $values =   "'" . implode("','", $filter->value) . "'";
+                            $where .= " AND {$field} IN({$values})";
+                            break;
+                        /** [{"type":"boolean","value":true,"field":"have_unread_comments"}] */
+                        case 'boolean':
+                            $filter->value = strval($filter->value);
+                            $where .= " AND {$field} = {$filter->value}::BOOLEAN";
                             break;
                         case 'string':
                             $where .= " AND {$field} ~* '" . preg_quote($filter->value) . "'";

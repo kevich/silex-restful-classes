@@ -1,6 +1,8 @@
 <?php
 namespace APG\SilexRESTful\Interfaces;
 
+use Worker\Model as WorkerModel;
+
 interface Service
 {
     /**
@@ -48,5 +50,11 @@ interface Service
      * @param array $sorters
      */
     public function setSorters($sorters);
+
+    /**
+     * @param WorkerModel $user
+     * @return null|void
+     */
+    public function setUser($user);
 
 }
