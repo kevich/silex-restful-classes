@@ -34,7 +34,9 @@ class SecurityFilterProvider implements ServiceProviderInterface {
      */
     public function boot(Application $app)
     {
-        $app['securityFilter']->setSecurityService($app['security']);
+        if ($app->offsetExists('security.authentication_providers')) {
+            $app['securityFilter']->setSecurityService($app['security']);
+        }
     }
 
     /**
