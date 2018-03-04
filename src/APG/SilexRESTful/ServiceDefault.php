@@ -1,4 +1,5 @@
 <?php
+
 namespace APG\SilexRESTful;
 
 use APG\SilexRESTful\Interfaces\Service;
@@ -96,7 +97,7 @@ class ServiceDefault implements Service
     {
         $data = get_object_vars($object);
         $status = $this->db->insert($this->table_name, $data, $this->prepareTypes($data));
-        $object->setId($this->db->lastInsertId($this->table_name."_id_seq"));
+        $object->setId($this->db->lastInsertId($this->table_name . "_id_seq"));
         return $status;
     }
 
@@ -117,11 +118,12 @@ class ServiceDefault implements Service
      */
     public function getAllAssoc($start = null, $limit = null)
     {
-        $qb = $this->applySorters(
-            $this->db->createQueryBuilder()
-                ->select($this->get_fields())
-                ->from($this->table_name, '')
-                ->where($this->createWhere())
+        $qb = $this->applyFilters(
+            $this->applySorters(
+                $this->db->createQueryBuilder()
+                    ->select($this->get_fields())
+                    ->from($this->table_name, '')
+            )
         );
         if ($limit != null) {
             $qb->setMaxResults($limit);
@@ -129,17 +131,28 @@ class ServiceDefault implements Service
         if ($start != null) {
             $qb->setFirstResult($start);
         }
-        return $this->table_name ? $this->db->fetchAll($qb->getSQL()) : array();
+        return $this->table_name
+            ? $this->db->fetchAll(
+                $qb->getSQL(),
+                $qb->getParameters(),
+                $qb->getParameterTypes()
+            )
+            : array();
     }
 
     public function getTotalCount()
     {
+        $qb = $this->applyFilters(
+            $this->db->createQueryBuilder()
+                ->select('COUNT(1)')
+                ->from($this->table_name, '')
+        );
         return $this->table_name ?
             $this->db->fetchColumn(
-                $this->db->createQueryBuilder()
-                    ->select('COUNT(1)')
-                    ->from($this->table_name, '')
-                    ->where($this->createWhere())->getSQL()
+                $qb->getSQL(),
+                $qb->getParameters(),
+                0,
+                $qb->getParameterTypes()
             )
             : 0;
     }
@@ -189,9 +202,10 @@ class ServiceDefault implements Service
         return class_exists($class_name) ? implode(',', array_merge(array('id'), array_keys(get_class_vars($class_name)))) : '*';
     }
 
-    protected function prepareTypes($values) {
+    protected function prepareTypes($values)
+    {
         $types = array();
-        foreach ($values as $key=>$value) {
+        foreach ($values as $key => $value) {
             if (!is_null($value)) {
                 $types[$key] = Type::getType(gettype($value));
             }
@@ -199,7 +213,11 @@ class ServiceDefault implements Service
         return $types;
     }
 
-    protected function createWhere()
+    /**
+     * @param \Doctrine\DBAL\Query\QueryBuilder $select
+     * @return \Doctrine\DBAL\Query\QueryBuilder
+     */
+    protected function applyFilters($select)
     {
         $where = 'TRUE';
         if (count($this->filters) > 0) {
@@ -211,36 +229,76 @@ class ServiceDefault implements Service
                 if ($field && property_exists($filter, 'value')) {
                     switch ($filter->type) {
                         case 'integer':
-                            $where .= " AND {$field} = {$filter->value}";
+                            $select->andWhere(
+                                $select->expr()->eq(
+                                    $this->db->quoteIdentifier($field),
+                                    $select->createPositionalParameter(intval($filter->value), Type::INTEGER)
+                                )
+                            );
                             break;
                         case 'list':
-                            $values =   "'" . implode("','", $filter->value) . "'";
-                            $where .= " AND {$field} IN({$values})";
+                            $select->andWhere(
+                                $select->expr()->in(
+                                    $this->db->quoteIdentifier($field),
+                                    array_map([$this->db, 'quote'], $filter->value)
+                                )
+                            );
+                            var_dump($select);die();
                             break;
                         /** [{"type":"boolean","value":true,"field":"have_unread_comments"}] */
                         case 'boolean':
-                            $filter->value = strval($filter->value);
-                            $where .= " AND {$field} = {$filter->value}::BOOLEAN";
+                            $select->andWhere(
+                                $select->expr()->eq(
+                                    $this->db->quoteIdentifier($field),
+                                    $select->createPositionalParameter(boolval($filter->value), Type::BOOLEAN)
+                                )
+                            );
+                            break;
+                        case 'date':
+                            $select->andWhere(
+                                $select->expr()->eq(
+                                    $this->db->quoteIdentifier($field),
+                                    $this->db->quote((new \DateTime($filter->value))->format('Y-m-d')) . '::DATE'
+                                )
+                            );
                             break;
                         case 'string':
-                            $where .= " AND {$field} ~* '" . preg_quote($filter->value) . "'";
+                            $select->andWhere(
+                                $select->expr()->comparison(
+                                    $this->db->quoteIdentifier($field),
+                                    '~*',
+                                    preg_quote($this->db->quote($filter->value))
+                                )
+                            );
                             break;
                         case 'pg_array':
-                            $where .= " AND (" . implode(' OR ', array_map(function($value) use ($field) {
-                                    $value = gettype($value) == 'string' ? "'$value'" : $value;
+                            $select->andWhere(
+                                "(" . implode(' OR ', array_map(function ($value) use ($field) {
+                                    $value = gettype($value) == 'string' ? $this->db->quote($value) : intval($value);
                                     return "$value = ANY($field)";
-                                }, is_array($filter->value) ? $filter->value : array($filter->value))) . ")";
+                                }, is_array($filter->value) ? $filter->value : array($filter->value))) . ")"
+                            );
                             break;
                         case 'array':
-                            $where .= " AND $field = ANY(['" . implode("','", $filter->value) . "'])";
+                            $select->andWhere(
+                                $select->expr()->eq(
+                                    $this->db->quoteIdentifier($field),
+                                    "ANY([" . implode(",", array_map([$this->db, 'quote'], $filter->value)) . "])"
+                                )
+                            );
                             break;
                         case 'foreingKey':
-                            $where .= " AND {$field} = " . $filter->value;
+                            $select->andWhere(
+                                $select->expr()->eq(
+                                    $this->db->quoteIdentifier($field),
+                                    $this->db->quote($filter->value)
+                                )
+                            );
                     }
                 }
             }
         }
-        return $where;
+        return $select;
     }
 
     /**
