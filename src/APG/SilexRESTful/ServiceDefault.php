@@ -243,7 +243,6 @@ class ServiceDefault implements Service
                                     array_map([$this->db, 'quote'], $filter->value)
                                 )
                             );
-                            var_dump($select);die();
                             break;
                         /** [{"type":"boolean","value":true,"field":"have_unread_comments"}] */
                         case 'boolean':
