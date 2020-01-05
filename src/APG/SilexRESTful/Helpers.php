@@ -13,7 +13,9 @@ class Helpers {
      */
     public static function from_camel_case($str) {
         $str[0] = strtolower($str[0]);
-        $func = create_function('$c', 'return "_" . strtolower($c[1]);');
+        $func = function ($c) {
+            return "_" . strtolower($c[1]);
+        };
         return preg_replace_callback('/([A-Z])/', $func, $str);
     }
 
@@ -27,7 +29,9 @@ class Helpers {
         if($capitaliseFirstChar) {
             $str = ucfirst($str);
         }
-        $func = create_function('$c', 'return strtoupper($c[1]);');
+        $func = function ($c) {
+            return strtoupper($c[1]);
+        };
         return preg_replace_callback('/_([a-z])/', $func, $str);
     }
 
