@@ -236,6 +236,14 @@ class ServiceDefault implements Service
                                 )
                             );
                             break;
+                        case 'numeric':
+                        $select->andWhere(
+                            $select->expr()->like(
+                                "{$field}::TEXT",
+                                "'%{$filter->value}%'"
+                            )
+                        );
+                        break;
                         case 'list':
                             $select->andWhere(
                                 $select->expr()->in(
