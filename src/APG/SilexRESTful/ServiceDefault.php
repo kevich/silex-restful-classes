@@ -220,16 +220,24 @@ class ServiceDefault implements Service
     protected function applyFilters($select)
     {
         $where = 'TRUE';
+        $operandMap = [
+            'or' => 'orWhere',
+            'and' => 'andWhere',
+        ];
         if (count($this->filters) > 0) {
             foreach ($this->filters as $filter) {
                 $field = false;
                 if (property_exists($filter, 'field')) $field = $filter->field;
                 if (property_exists($filter, 'property')) $field = $filter->property;
                 if (!property_exists($filter, 'type') && property_exists($filter, 'value')) $filter->type = gettype($filter->value);
+                $logicalOperand = property_exists($filter, 'logical') && array_key_exists($filter->logical, $operandMap)
+                    ? $operandMap[$filter->logical]
+                    : $operandMap['and'];
+
                 if ($field && property_exists($filter, 'value')) {
                     switch ($filter->type) {
                         case 'integer':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->eq(
                                     $this->db->quoteIdentifier($field),
                                     $select->createPositionalParameter(intval($filter->value), Type::INTEGER)
@@ -237,7 +245,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'numeric':
-                        $select->andWhere(
+                        $select->$logicalOperand(
                             $select->expr()->like(
                                 "{$field}::TEXT",
                                 "'%{$filter->value}%'"
@@ -245,7 +253,7 @@ class ServiceDefault implements Service
                         );
                         break;
                         case 'list':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->in(
                                     $this->db->quoteIdentifier($field),
                                     array_map([$this->db, 'quote'], $filter->value)
@@ -254,7 +262,7 @@ class ServiceDefault implements Service
                             break;
                         /** [{"type":"boolean","value":true,"field":"have_unread_comments"}] */
                         case 'boolean':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->eq(
                                     $this->db->quoteIdentifier($field),
                                     $select->createPositionalParameter(boolval($filter->value), Type::BOOLEAN)
@@ -262,7 +270,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'date':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->eq(
                                     $this->db->quoteIdentifier($field),
                                     $this->db->quote((new \DateTime($filter->value))->format('Y-m-d')) . '::DATE'
@@ -270,7 +278,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'string':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->comparison(
                                     $this->db->quoteIdentifier($field),
                                     '~*',
@@ -279,7 +287,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'pg_array':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 "(" . implode(' OR ', array_map(function ($value) use ($field) {
                                     $value = gettype($value) == 'string' ? $this->db->quote($value) : intval($value);
                                     return "$value = ANY($field)";
@@ -287,7 +295,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'array':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->eq(
                                     $this->db->quoteIdentifier($field),
                                     "ANY([" . implode(",", array_map([$this->db, 'quote'], $filter->value)) . "])"
@@ -295,7 +303,7 @@ class ServiceDefault implements Service
                             );
                             break;
                         case 'foreingKey':
-                            $select->andWhere(
+                            $select->$logicalOperand(
                                 $select->expr()->eq(
                                     $this->db->quoteIdentifier($field),
                                     $this->db->quote($filter->value)
