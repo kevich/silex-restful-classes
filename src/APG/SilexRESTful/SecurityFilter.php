@@ -4,7 +4,8 @@ namespace APG\SilexRESTful;
 
 use Symfony\Component\Security\Core\SecurityContext;
 
-class SecurityFilter {
+class SecurityFilter
+{
 
     /**
      * @var array
@@ -37,7 +38,8 @@ class SecurityFilter {
      * @param string $itemName
      * @return bool
      */
-    public function isMethodAllowedForItemName($methodName, $itemName) {
+    public function isMethodAllowedForItemName($methodName, $itemName)
+    {
         foreach ($this->getUserRoles() as $role) {
             if (isset($this->configuration[$role->getRole()])) {
                 if (isset($this->configuration[$role->getRole()][$itemName])) {
@@ -55,13 +57,37 @@ class SecurityFilter {
         return false;
     }
 
+    public function isMethodAllowedForItem($methodName, $itemName, $item)
+    {
+        foreach ($this->getUserRoles() as $role) {
+            $roleAccessConfig = $this->configuration[$role->getRole()] ?? [];
+            $dataLimitsConfig = $roleAccessConfig["dataLimits"] ?? false;
+            if ($dataLimitsConfig) {
+                foreach ($dataLimitsConfig as $config) {
+                    if (
+                        is_array($config['tables'] ?? null)
+                        && array_key_exists('validator', $config)
+                        && array_key_exists('allowedMethods', $config)
+                        && in_array($itemName, $config['tables'], true)
+                    ) {
+                        $name = $config['validator']['property'];
+                        $value = $this->prepareFilterValue($config['validator']['value']);
+                        return $value === $item->$name && in_array($methodName, $config['allowedMethods'], true);
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     public function extendFilters($itemName, $filters)
     {
         foreach ($this->getUserRoles() as $role) {
             if (isset($this->configuration[$role->getRole()])) {
                 if (
-                isset($this->configuration[$role->getRole()]['filters'])
-                && is_array($this->configuration[$role->getRole()]['filters'])
+                    isset($this->configuration[$role->getRole()]['filters'])
+                    && is_array($this->configuration[$role->getRole()]['filters'])
                 ) {
                     foreach ($this->configuration[$role->getRole()]['filters'] as $filterConfig) {
                         if (
@@ -109,7 +135,7 @@ class SecurityFilter {
      */
     private function prepareFilterValue($value)
     {
-        if (gettype($value) == 'string' && strstr($value, '@user->') !== false) {
+        if (is_string($value) && strpos($value, '@user->') !== false) {
             $userParam = str_replace('@user->', '', $value);
             $value = $this->getUser()->$userParam;
         }

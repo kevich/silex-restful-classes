@@ -1,4 +1,5 @@
 <?php
+
 namespace APG\SilexRESTful;
 
 use Silex\Application;
@@ -32,8 +33,8 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
      * Returns routes to connect to the given application.
      *
      * @param Application $app An Application instance
-     * @internal ControllerCollection $controllers
      * @return ControllerCollection A ControllerCollection instance
+     * @internal ControllerCollection $controllers
      */
     final public function connect(Application $app)
     {
@@ -41,7 +42,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
         /** @var $controllers ControllerCollection */
         $controllers = $app['controllers_factory'];
 
-        /** @var ServiceDefault $default_service  */
+        /** @var ServiceDefault $default_service */
         $default_service = $app['object.service'];
         $default_service->setTableName($this->object_name);
 
@@ -94,11 +95,6 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function post($controllerProvider)
     {
         return function (Application $app, Request $request) use ($controllerProvider) {
-            if (isset($app['securityFilter'])) {
-                if (!$app['securityFilter']->isMethodAllowedForItemName('post', $controllerProvider->getObjectName())) {
-                    return new Response('Method not allowed', 405);
-                }
-            }
             $objectName = $controllerProvider->getObjectName();
             $content = json_decode($request->getContent());
             if (!$data = $content->$objectName) {
@@ -111,12 +107,20 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             $class_name = Helpers::to_camel_case($objectName) . '\Model';
             $object = class_exists($class_name) ? new $class_name() : new ModelDummy($objectName);
             $object->fillFromArray((array)$data);
+            if (isset($app['securityFilter'])
+                && !(
+                    $app['securityFilter']->isMethodAllowedForItemName('post', $controllerProvider->getObjectName())
+                    || $app['securityFilter']->isMethodAllowedForItem('post', $controllerProvider->getObjectName(), $object)
+                )
+            ) {
+                return new Response('Method not allowed', 405);
+            }
             $status = $controllerProvider->getService()->saveObject($object);
             return $status ? $app->json(array(
-                    'success' => true,
-                    'msg' => 'created',
-                    'data' => array_merge(array('id' => $object->getId()),get_object_vars($object))
-                )) : new Response('Server error.', 500);
+                'success' => true,
+                'msg' => 'created',
+                'data' => array_merge(array('id' => $object->getId()), get_object_vars($object))
+            )) : new Response('Server error.', 500);
         };
     }
 
@@ -127,11 +131,6 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function put($controllerProvider)
     {
         return function (Application $app, Request $request, $id) use ($controllerProvider) {
-            if (isset($app['securityFilter'])) {
-                if (!$app['securityFilter']->isMethodAllowedForItemName('put', $controllerProvider->getObjectName())) {
-                    return new Response('Method not allowed', 405);
-                }
-            }
             $objectName = $controllerProvider->getObjectName();
             $content = json_decode($request->getContent());
             if (!$data = $content->$objectName) {
@@ -147,13 +146,21 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             }
 
             $object->fillFromArray((array)$data);
+            if (isset($app['securityFilter'])
+                && !(
+                    $app['securityFilter']->isMethodAllowedForItemName('put', $controllerProvider->getObjectName())
+                    || $app['securityFilter']->isMethodAllowedForItem('put', $controllerProvider->getObjectName(), $object)
+                )
+            ) {
+                return new Response('Method not allowed', 405);
+            }
             $status = $controllerProvider->getService()->updateObject($object);
 
             return $status ? $app->json(array(
-                    'success' => true,
-                    'msg' => 'updated',
-                    'data' => array_merge(array('id' => $object->getId()),get_object_vars($object))
-                )) : new Response('Server error.', 500);
+                'success' => true,
+                'msg' => 'updated',
+                'data' => array_merge(array('id' => $object->getId()), get_object_vars($object))
+            )) : new Response('Server error.', 500);
         };
     }
 
@@ -163,10 +170,10 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
      */
     protected function getAll($controllerProvider)
     {
-        return function (Application $app, Request $request) use($controllerProvider) {
-            $filters = json_decode($request->get('filter')) ? : array();
+        return function (Application $app, Request $request) use ($controllerProvider) {
+            $filters = json_decode($request->get('filter')) ?: array();
             if ($query = $request->get('query')) {
-                foreach ($query as $name=>$value) {
+                foreach ($query as $name => $value) {
                     $filter = new \StdClass;
                     $filter->field = $name;
                     $filter->value = $value;
@@ -192,8 +199,8 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             $controllerProvider->getService()->setUser($controllerProvider->getUser($app));
             $total = $controllerProvider->getService()->getTotalCount();
             return $app->json(array(
-                    'total' => $total,
-                    'data' => $controllerProvider->getService()->getAllAssoc($start,$limit)));
+                'total' => $total,
+                'data' => $controllerProvider->getService()->getAllAssoc($start, $limit)));
         };
     }
 
@@ -203,7 +210,7 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
      */
     protected function getById($controllerProvider)
     {
-        return function (Application $app, Request $request, $id) use($controllerProvider) {
+        return function (Application $app, Request $request, $id) use ($controllerProvider) {
             if (isset($app['securityFilter'])) {
                 if (!$app['securityFilter']->isMethodAllowedForItemName('getById', $controllerProvider->getObjectName())) {
                     return new Response('Method not allowed', 405);
@@ -215,8 +222,8 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
             }
             $controllerProvider->getService()->setUser($controllerProvider->getUser($app));
             return $app->json(array(
-                'success' => true,
-                'data' => $controllerProvider->getService()->getByIdAssoc($id)
+                    'success' => true,
+                    'data' => $controllerProvider->getService()->getByIdAssoc($id)
                 )
             );
         };
@@ -229,20 +236,26 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function deleteById($controllerProvider)
     {
         return function (Application $app, Request $request, $id) use ($controllerProvider) {
-            if (isset($app['securityFilter'])) {
-                if (!$app['securityFilter']->isMethodAllowedForItemName('deleteById', $controllerProvider->getObjectName())) {
-                    return new Response('Method not allowed', 405);
-                }
+            if (!$object = $controllerProvider->getService()->getById($id)) {
+                return new Response('Missing parameters.', 400);
+            }
+            if (isset($app['securityFilter'])
+                && !(
+                    $app['securityFilter']->isMethodAllowedForItemName('deleteById', $controllerProvider->getObjectName())
+                    || $app['securityFilter']->isMethodAllowedForItem('deleteById', $controllerProvider->getObjectName(), $object)
+                )
+            ) {
+                return new Response('Method not allowed', 405);
             }
 
             if ($controllerProvider->getService() instanceof ServiceDefault) {
                 $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
             return $controllerProvider->getService()->deleteById($id) ? $app->json(array(
-                    'success' => true,
-                    'msg' => 'deleted',
-                    'data' => array()
-                )) : new Response('Not found', 404);
+                'success' => true,
+                'msg' => 'deleted',
+                'data' => array()
+            )) : new Response('Not found', 404);
         };
     }
 
