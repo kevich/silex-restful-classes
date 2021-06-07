@@ -211,14 +211,13 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function getById($controllerProvider)
     {
         return function (Application $app, Request $request, $id) use ($controllerProvider) {
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
+            }
             if (isset($app['securityFilter'])) {
                 if (!$app['securityFilter']->isMethodAllowedForItemName('getById', $controllerProvider->getObjectName())) {
                     return new Response('Method not allowed', 405);
                 }
-            }
-
-            if ($controllerProvider->getService() instanceof ServiceDefault) {
-                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
             }
             $controllerProvider->getService()->setUser($controllerProvider->getUser($app));
             return $app->json(array(
@@ -236,6 +235,9 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
     protected function deleteById($controllerProvider)
     {
         return function (Application $app, Request $request, $id) use ($controllerProvider) {
+            if ($controllerProvider->getService() instanceof ServiceDefault) {
+                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
+            }
             if (!$object = $controllerProvider->getService()->getById($id)) {
                 return new Response('Missing parameters.', 400);
             }
@@ -248,9 +250,6 @@ abstract class ControllerProviderAbstract implements ControllerProviderInterface
                 return new Response('Method not allowed', 405);
             }
 
-            if ($controllerProvider->getService() instanceof ServiceDefault) {
-                $controllerProvider->getService()->setTableName($controllerProvider->getObjectName());
-            }
             return $controllerProvider->getService()->deleteById($id) ? $app->json(array(
                 'success' => true,
                 'msg' => 'deleted',
